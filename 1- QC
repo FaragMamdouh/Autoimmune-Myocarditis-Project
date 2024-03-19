@@ -1,0 +1,151 @@
+library(dplyr)
+library(Seurat)
+library(patchwork)
+library(SingleCellExperiment)
+library(Seurat)
+library(tidyverse)
+library(Matrix)
+library(scales)
+library(cowplot)
+library(RCurl)
+library(Seurat)
+library(tidyverse)
+library(RCurl)
+library(cowplot)
+setwd("F:/single cell/seurat2")
+# Create each individual Seurat object for every sample
+#Day0
+Day0.data <- Read10X(data.dir = "Together/Day0")
+Day0 <- CreateSeuratObject(counts = Day0.data, project = "Day0", min.cells = 3, min.features = 200)
+#Day14
+Day14.data <- Read10X(data.dir = "Together/Day14")
+Day14 <- CreateSeuratObject(counts = Day14.data, project = "Day14", min.cells = 3, min.features = 200)
+#Day21
+Day21.data <- Read10X(data.dir = "Together/Day21")
+Day21 <- CreateSeuratObject(counts = Day21.data, project = "Day21", min.cells = 3, min.features = 200)
+#Day60
+Day60.data <- Read10X(data.dir = "Together/Day60")
+Day60 <- CreateSeuratObject(counts = Day60.data, project = "Day60", min.cells = 3, min.features = 200)
+merged_seurat <- merge(Day0, y = c(Day14, Day21, Day60), add.cell.ids = c("Normal_Control", "Acute_Inflammatory_Phase", 
+                                                                          "SubAcute_Inflammatory_Phase",
+                                                                          "Chronic_Myopathy_Phase"), project = "merged_seurat")
+# Check that the merged object has the appropriate sample-specific prefixes
+head(merged_seurat@meta.data)
+tail(merged_seurat@meta.data)
+View(merged_seurat@meta.data)
+
+# Add number of genes per UMI for each cell to metadata
+merged_seurat$log10GenesPerUMI <- log10(merged_seurat$nFeature_RNA) / log10(merged_seurat$nCount_RNA)
+# Compute percent mito ratio
+merged_seurat$mitoRatio <- PercentageFeatureSet(object = merged_seurat, pattern = "^MT-")
+merged_seurat$mitoRatio <- merged_seurat@meta.data$mitoRatio / 100
+# Create metadata dataframe
+metadata <- merged_seurat@meta.data
+# Add cell IDs to metadata
+metadata$cells <- rownames(metadata)
+
+# Rename columns
+metadata <- metadata %>%
+  dplyr::rename(seq_folder = orig.ident,
+                nUMI = nCount_RNA,
+                nGene = nFeature_RNA)
+# Create sample column
+metadata$sample <- NA
+metadata$sample[which(str_detect(metadata$cells, "^Normal_Control_"))] <- "Normal_Control"
+metadata$sample[which(str_detect(metadata$cells, "^Acute_Inflammatory_Phase_"))] <- "Acute_Inflammatory_Phase"
+metadata$sample[which(str_detect(metadata$cells, "^SubAcute_Inflammatory_Phase_"))] <- "SubAcute_Inflammatory_Phase"
+metadata$sample[which(str_detect(metadata$cells, "^Chronic_Myopathy_Phase_"))] <- "Chronic_Myopathy_Phase"
+# Add metadata back to Seurat object
+merged_seurat@meta.data <- metadata
+# Visualize the number of cell counts per sample
+metadata %>% 
+  ggplot(aes(x=sample, fill=sample)) + 
+  geom_bar() +
+  ggtitle("Number of Cells") +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  theme(plot.title = element_text(hjust=0.5, face="bold")) 
+
+# Visualize the number UMIs/transcripts per cell
+metadata %>% 
+  ggplot(aes(color=sample, x=nUMI, fill= sample)) + 
+  geom_density(alpha = 0.2) + 
+  scale_x_log10() + 
+  theme_classic() +
+  ylab("Cell density") +
+  geom_vline(xintercept = 500)
+
+# Visualize the distribution of genes detected per cell via histogram
+metadata %>% 
+  ggplot(aes(color=sample, x=nGene, fill= sample)) + 
+  geom_density(alpha = 0.2) + 
+  theme_classic() +
+  scale_x_log10() + 
+  geom_vline(xintercept = 300)
+
+# Visualize the distribution of genes detected per cell via boxplot
+metadata %>%
+ ggplot(aes(x=sample, y=log10(nGene), fill=sample)) +
+ geom_boxplot() +
+theme_classic() +
+theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+theme(plot.title = element_text(hjust=0.5, face="bold")) +
+ggtitle("NCells vs NGenes")
+#Visualize the correlation between genes detected and number of UMIs and determine whether strong presence of cells with low numbers of genes/UMIs
+metadata %>%
+ggplot(aes(x=nUMI, y=nGene, color=mitoRatio)) +
+geom_point() +
+scale_colour_gradient(low = "gray90", high = "black") +
+stat_smooth(method=lm) +
+scale_x_log10() +
+scale_y_log10() +
+theme_classic() +
+geom_vline(xintercept = 500) +
+geom_hline(yintercept = 250) +
+facet_wrap(~sample)
+#Visualize the distribution of mitochondrial gene expression detected per cell
+metadata %>%
+ggplot(aes(color=sample, x=mitoRatio, fill=sample)) +
+geom_density(alpha = 0.2) +
+scale_x_log10() +
+theme_classic() +
+geom_vline(xintercept = 0.2)
+#Visualize the overall complexity of the gene expression by visualizing the genes detected per UMI
+metadata %>%
+ggplot(aes(x=log10GenesPerUMI, color = sample, fill=sample)) +
+geom_density(alpha = 0.2) +
+theme_classic() +
+geom_vline(xintercept = 0.8)
+
+#before filteration
+#VlnPlot(merged_seurat, features = c("nGene", "nUMI"), ncol = 2)
+#plot1 <- FeatureScatter(merged_seurat, feature1 = "nUMI", feature2 = "nGene")
+filtered_seurat <- subset(x = merged_seurat, 
+                          subset= (nUMI >= 1000) & 
+                            (nUMI<40000)&
+                            ( nGene >= 200)&
+                            (nGene< 5000))
+#After filteration
+VlnPlot(filtered_seurat, features = c("nGene", "nUMI"), ncol = 2)
+plot1 <- FeatureScatter(filtered_seurat, feature1 = "nUMI", feature2 = "nGene")
+
+# Gene-level filtering
+# Output a logical vector for every gene on whether the more than zero counts per cell
+# Extract counts
+counts <- GetAssayData(object = filtered_seurat, slot = "counts")
+
+# Output a logical vector for every gene on whether the more than zero counts per cell
+nonzero <- counts > 0
+
+# Sums all TRUE values and returns TRUE if more than 10 TRUE values per gene
+keep_genes <- Matrix::rowSums(nonzero) >= 10
+
+# Only keeping those genes expressed in more than 10 cells
+filtered_counts <- counts[keep_genes, ]
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Reassign to filtered Seurat object
+filtered_seurat <- CreateSeuratObject(filtered_counts, meta.data = filtered_seurat@meta.data)                          
+#VlnPlot(filtered_seurat, features = c("nGene", "nUMI"))
+
+
+
