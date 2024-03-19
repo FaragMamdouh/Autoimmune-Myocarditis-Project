@@ -12,7 +12,7 @@ library(Seurat)
 library(tidyverse)
 library(RCurl)
 library(cowplot)
-setwd("F:/single cell/seurat2")
+setwd("E:/2- monocle3/3- single cell/1- seurat2")
 # Create each individual Seurat object for every sample
 #Day0
 Day0.data <- Read10X(data.dir = "Together/Day0")
@@ -118,8 +118,8 @@ theme_classic() +
 geom_vline(xintercept = 0.8)
 
 #before filteration
-#VlnPlot(merged_seurat, features = c("nGene", "nUMI"), ncol = 2)
-#plot1 <- FeatureScatter(merged_seurat, feature1 = "nUMI", feature2 = "nGene")
+VlnPlot(merged_seurat, features = c("nGene", "nUMI"), ncol = 2)
+plot1 <- FeatureScatter(merged_seurat, feature1 = "nUMI", feature2 = "nGene")
 filtered_seurat <- subset(x = merged_seurat, 
                           subset= (nUMI >= 1000) & 
                             (nUMI<40000)&
