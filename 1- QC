@@ -146,6 +146,3 @@ filtered_counts <- counts[keep_genes, ]
 # Reassign to filtered Seurat object
 filtered_seurat <- CreateSeuratObject(filtered_counts, meta.data = filtered_seurat@meta.data)                          
 #VlnPlot(filtered_seurat, features = c("nGene", "nUMI"))
-
-
-
