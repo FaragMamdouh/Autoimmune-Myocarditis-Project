@@ -1,0 +1,45 @@
+# Run PCA
+seurat_integrated <- RunPCA(object = seurat_integrated, npcs = 40)
+
+# Plot PCA
+PCAPlot(seurat_integrated,
+        split.by = "sample")  
+# Run UMAP
+seurat_integrated <- RunUMAP(seurat_integrated, 
+                             dims = 1:40,
+                             reduction = "pca")
+
+# Plot UMAP                             
+DimPlot(seurat_integrated, reduction = "umap")  
+DimPlot(seurat_integrated,
+        split.by = "sample") 
+# Explore heatmap of PCs
+DimHeatmap(seurat_integrated, 
+           dims = 1:4, 
+           cells = 500, 
+           balanced = TRUE,
+           ncol = 2)
+
+saveRDS(seurat_integrated, "seurat_integrated.rds")
+# Determine the K-nearest neighbor graph
+seurat_integrated <- FindNeighbors(object = seurat_integrated, 
+                                   dims = 1:40)
+# Determine the clusters for various resolutions                                
+seurat_integrated <- FindClusters(object = seurat_integrated,
+                                  resolution = c(0.4, .5 ,0.6, .7))
+saveRDS(seurat_integrated, "seurat_integrated.rds")
+# Determine metrics to plot present in seurat_integrated@meta.data
+metrics <-  c("nUMI", "nGene", "S.Score", "G2M.Score", "mitoRatio")
+
+FeaturePlot(seurat_integrated, 
+            reduction = "umap", 
+            features = metrics,
+            pt.size = 0.4, 
+            sort.cell = TRUE,
+            min.cutoff = 'q10',
+            label = FALSE)
+Idents(object = seurat_integrated) <- "integrated_snn_res.0.7"
+# Plot the UMAP
+DimPlot(seurat_integrated,
+        reduction = "umap",
+        split.by = "Phase")
