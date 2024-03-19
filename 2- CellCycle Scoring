@@ -11,9 +11,6 @@ seurat_phase <- CellCycleScoring(seurat_phase,
 RidgePlot(seurat_phase, features = c("Pcna", "Top2a", "Mcm6", "Mki67"), ncol = 2)
 # View cell cycle scores and phases assigned to cells                                 
 View(seurat_phase@meta.data)   
-merged_seurat <- merge(Day0, y = c(Day14, Day21, Day60), add.cell.ids = c("Normal_Control", "Acute_Inflammatory_Phase", 
-                                                                          "SubAcute_Inflammatory_Phase",
-                                                                          "Chronic_Myopathy_Phase"), project = "merged_seurat")
 
 # Identify the most variable genes
 seurat_phase <- FindVariableFeatures(seurat_phase, 
@@ -29,20 +26,3 @@ seurat_phase <- RunPCA(seurat_phase)
 # Plot the PCA colored by cell cycle phase
 DimPlot(seurat_phase, reduction = "pca", group.by= "Phase",
         split.by = "Phase")
-
-#merged split seurat after regression
-split_seurat <- merge(split_seurat[["Normal_Control"]], y = c(split_seurat[["Acute_Inflammatory_Phase"]], split_seurat[["SubAcute_Inflammatory_Phase"]], split_seurat[["Chronic_Myopathy_Phase"]]))
-split_seurat <- FindVariableFeatures(split_seurat, 
-                                     selection.method = "vst",
-                                     nfeatures = 2000, 
-                                     verbose = FALSE)
-
-split_seurat <- ScaleData(split_seurat)
-
-# Perform PCA
-split_seurat <- RunPCA(split_seurat)
-
-# Plot the PCA colored by cell cycle phase
-DimPlot(seurat_integrated, reduction = "pca", group.by= "Phase",
-        split.by = "Phase")
-DefaultAssay(seurat_integrated) = "SCT"
