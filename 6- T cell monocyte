@@ -1,0 +1,29 @@
+library(Seurat)
+library(devtools)
+library(data.table)
+library(fgsea)
+library(ggplot2)
+library(reactome.db)
+setwd("E:/3- single cell/1- seurat2/New/Tcellmono")
+seurat = seurat_integrated
+
+cells= subset(seurat, idents = "T_cell-monocyte_complexes")
+VlnPlot(cells, features = c("Cd4","Cd8a","Cd14"), assay = "RNA")
+data =table(cells$orig.ident)
+# Your data
+data <- data.frame(
+  Condition = c("Acute", "Chronic", "Normal", "Subacute"),
+  Count = c(83, 58, 8, 166)
+)
+library(RColorBrewer)
+
+custom_palette <- brewer.pal(4, "Set2")
+
+data$Condition <- factor(data$Condition, levels = c("Normal", "Acute", "Subacute", "Chronic"))
+ggplot(data, aes(x = Condition, y = Count, fill = Condition)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = custom_palette) +  # Use custom colors
+  labs(title = "Distribution of Cells",
+       x = "Condition",
+       y = "Count") +
+  theme_minimal()
