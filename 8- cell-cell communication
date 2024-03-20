@@ -1,0 +1,287 @@
+library(Seurat)
+library(CellChat)
+library(patchwork)
+options(stringsAsFactors = FALSE)
+split_seurat <- SplitObject(immune.combined, split.by = "orig.ident")
+split_seurat <- split_seurat[c("Normal", "Acute", "SubAcute", "Chronic")]
+Normal= split_seurat[["Normal"]]
+#------------------------------------------------------------------------------#
+data.input.Normal <- GetAssayData(Normal, assay = "RNA", slot = "data") 
+labels <- Idents(Normal)
+metaNormal <- data.frame(group = labels, row.names = names(labels)) 
+cellchatNormal <- createCellChat(object = data.input.Normal, 
+                                 meta = metaNormal, group.by = "group")
+head(metaNormal)
+CellChatDB <- CellChatDB.mouse 
+dplyr::glimpse(CellChatDB$interaction)
+CellChatDB.use <- CellChatDB 
+cellchatNormal@DB <- CellChatDB.use
+cellchatNormal <- subsetData(cellchatNormal) 
+cellchatNormal <- identifyOverExpressedGenes(cellchatNormal)
+cellchatNormal <- identifyOverExpressedInteractions(cellchatNormal)
+cellchatNormal <- projectData(cellchatNormal, PPI.mouse)
+cellchatNormal <- computeCommunProb(cellchatNormal)
+cellchatNormal <- filterCommunication(cellchatNormal, min.cells = 10)
+cellchatNormal <- computeCommunProbPathway(cellchatNormal)
+cellchatNormal <- aggregateNet(cellchatNormal)
+groupSize <- as.numeric(table(cellchatNormal@idents))
+par(mfrow = c(1,2), xpd=TRUE)
+netVisual_circle(cellchatNormal@net$count, vertex.weight = groupSize,
+                       weight.scale = T, label.edge= F, 
+                       title.name = "Number of interactions in Normal Phase")
+netVisual_circle(cellchatNormal@net$weight, vertex.weight = groupSize,
+                 weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
+#------------------------------------------------------------------------------#
+Acute= split_seurat[["Acute"]]
+data.input.Acute <- GetAssayData(Acute, assay = "RNA", slot = "data")
+labels <- Idents(Acute)
+metaAcute <- data.frame(group = labels, row.names = names(labels)) 
+cellchatAcute <- createCellChat(object = data.input.Acute, 
+                                meta = metaAcute, group.by = "group")
+head(metaAcute)
+CellChatDB <- CellChatDB.mouse 
+dplyr::glimpse(CellChatDB$interaction)
+CellChatDB.use <- CellChatDB 
+cellchatAcute@DB <- CellChatDB.use
+cellchatAcute<- subsetData(cellchatAcute) 
+cellchatAcute <- identifyOverExpressedGenes(cellchatAcute)
+cellchatAcute <- identifyOverExpressedInteractions(cellchatAcute)
+cellchatAcute <- projectData(cellchatAcute, PPI.mouse)
+cellchatAcute <- computeCommunProb(cellchatAcute)
+cellchatAcute <- filterCommunication(cellchatAcute, min.cells = 10)
+cellchatAcute <- computeCommunProbPathway(cellchatAcute)
+cellchatAcute <- aggregateNet(cellchatAcute)
+groupSize <- as.numeric(table(cellchatAcute@idents))
+par(mfrow = c(1,2), xpd=TRUE)
+netVisual_circle(cellchatAcute@net$count, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Number of interactions in Acute Phase")
+netVisual_circle(cellchatAcute@net$weight, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
+#------------------------------------------------------------------------------#
+# SubAcute
+SubAcute= split_seurat[["SubAcute"]]
+data.input.SubAcute <- GetAssayData(SubAcute, assay = "RNA", slot = "data") 
+labels <- Idents(SubAcute)
+metaSubAcute <- data.frame(group = labels, row.names = names(labels)) 
+cellchatSubAcute <- createCellChat(object = data.input.SubAcute, meta = metaSubAcute, group.by = "group")
+head(metaSubAcute)
+CellChatDB <- CellChatDB.mouse 
+dplyr::glimpse(CellChatDB$interaction)
+CellChatDB.use <- CellChatDB 
+cellchatSubAcute@DB <- CellChatDB.use
+cellchatSubAcute<- subsetData(cellchatSubAcute) 
+cellchatSubAcute <- identifyOverExpressedGenes(cellchatSubAcute)
+cellchatSubAcute <- identifyOverExpressedInteractions(cellchatSubAcute)
+cellchatSubAcute <- projectData(cellchatSubAcute, PPI.mouse)
+cellchatSubAcute<- computeCommunProb(cellchatSubAcute)
+cellchatSubAcute <- filterCommunication(cellchatSubAcute, min.cells = 10)
+cellchatSubAcute <- computeCommunProbPathway(cellchatSubAcute)
+cellchatSubAcute <- aggregateNet(cellchatSubAcute)
+groupSize <- as.numeric(table(cellchatSubAcute@idents))
+par(mfrow = c(1,2), xpd=TRUE)
+dev.off()
+
+gg3 = netVisual_circle(cellchatSubAcute@net$count, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Number of interactions in SubAcute Phase")
+netVisual_circle(cellchatSubAcute@net$weight, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
+#------------------------------------------------------------------------------#
+#Chronic Phase
+Chronic= split_seurat[["Chronic"]]
+data.input.Chronic <- GetAssayData(Chronic, assay = "RNA", slot = "data") 
+labels <- Idents(Chronic)
+metaChronic <- data.frame(group = labels, row.names = names(labels)) 
+cellchatChronic <- createCellChat(object = data.input.Chronic, 
+                                  meta = metaChronic, group.by = "group")
+head(metaChronic)
+CellChatDB <- CellChatDB.mouse
+dplyr::glimpse(CellChatDB$interaction)
+CellChatDB.use <- CellChatDB 
+cellchatChronic@DB <- CellChatDB.use
+cellchatChronic<- subsetData(cellchatChronic) 
+cellchatChronic <- identifyOverExpressedGenes(cellchatChronic)
+cellchatChronic <- identifyOverExpressedInteractions(cellchatChronic)
+cellchatChronic <- projectData(cellchatChronic, PPI.mouse)
+cellchatChronic <- computeCommunProb(cellchatChronic)
+cellchatChronic <- filterCommunication(cellchatChronic, min.cells = 10)
+cellchatChronic <- computeCommunProbPathway(cellchatChronic)
+cellchatChronic <- aggregateNet(cellchatChronic)
+groupSize <- as.numeric(table(cellchatChronic@idents))
+par(mfrow = c(1,2), xpd=TRUE)
+#------------------------------------------------------------------------------#
+gg4 = netVisual_circle(cellchatChronic@net$count, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Number of interactions in Crhonic Myopathy Phase")
+netVisual_circle(cellchatChronic@net$weight, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
+#------------------------------------------------------------------------------#
+cellchatNormal=netAnalysis_computeCentrality(cellchatNormal, slot.name = "netP")
+cellchatAcute=netAnalysis_computeCentrality(cellchatAcute, slot.name = "netP")
+cellchatSubAcute=netAnalysis_computeCentrality(cellchatSubAcute, slot.name = "netP")
+cellchatChronic=netAnalysis_computeCentrality(cellchatChronic, slot.name = "netP")
+#------------------------------------------------------------------------------#
+
+#merge
+object.list <- list(Normal_Phase=cellchatNormal, Acute_Phase = cellchatAcute,
+                    SubAcute_Phase = cellchatSubAcute, 
+                    Chronic_Phase = cellchatChronic)
+AllPhases <- mergeCellChat(object.list, add.names = names(object.list))
+gg1 <- compareInteractions(AllPhases, show.legend = F, group = c(1,2))
+gg2 <- compareInteractions(AllPhases, show.legend = F, group = c(1,2), 
+                           measure = "weight")
+gg1 + gg2
+
+gg3 <- netVisual_heatmap(AllPhases)
+gg4 <- netVisual_heatmap(AllPhases, measure = "weight")
+gg3 + gg4
+num.link <- sapply(object.list, function(x) {rowSums(x@net$count) + colSums(x@net$count)-diag(x@net$count)})
+weight.MinMax <- c(min(num.link), max(num.link)) # control the dot size in the different datasets
+gg <- list()
+for (i in 1:length(object.list)) {
+  gg[[i]] <- netAnalysis_signalingRole_scatter(object.list[[i]], title = names(object.list)[i], weight.MinMax = weight.MinMax)
+}
+patchwork::wrap_plots(plots = gg)
+#------------------------------------------------------------------------------#
+AllPhases <- CellChat::computeNetSimilarityPairwise(AllPhases, type = "functional", comparison = c(1,2,3,4) )
+
+AllPhases <- CellChat::netEmbeddinga(AllPhases, type = "functional")
+AllPhases <- CellChat::netClustering(AllPhases, type = "functional", do.parallel = FALSE)
+CellChat::netVisual_embeddingPairwise(AllPhases, type = "functional", label.size = 3.5)
+#------------------------------------------------------------------------------#
+AllPhases <- CellChat::computeNetSimilarityPairwise(AllPhases, type = "structural")
+AllPhases <- netEmbedding(AllPhases, type = "structural")
+AllPhases <- netClustering(AllPhases, type = "structural")
+netVisual_embeddingPairwise(AllPhases, type = "structural", label.size = 3.5)
+#------------------------------------------------------------------------------#
+
+gg1 <- rankNet(AllPhases, mode = "comparison", stacked = T, do.stat = TRUE, comparison = c(1,2,3, 4))
+gg2 <- rankNet(AllPhases, mode = "comparison", stacked = F, do.stat = TRUE, comparison = c(1,2,3, 4))
+gg2 +gg1
+rankSimilarity(AllPhases, type = "functional", comparison1 = c(1,2,3,4))
+#> Compute the distance of signaling networks between datasets 1 2
+pathways.show <- c("SPP1") 
+AllPhases<- computeCommunProb(AllPhases)
+AllPhases <- computeCommunProbPathway(AllPhases)
+# Compute the network centrality scores
+AllPhases <- netAnalysis_computeCentrality(AllPhases, slot.name = "netP") # the slot 'netP' means the inferred intercellular communication network of signaling pathways
+# Visualize the computed centrality scores using heatmap, allowing ready identification of major signaling roles of cell groups
+netAnalysis_signalingRole_network(cellchatAcute, signaling = pathways.show, width = 10, height = 8, font.size = 10)
+vertex.receiver = c(1,2,3,4,5,6,7,8,9,10,11,12,13) # a numeric vector. 
+netVisual_aggregate(cellchatAcute, signaling = "BAFF",  
+                    vertex.receiver = vertex.receiver, layout = "hierarchy")
+
+#>>>>>>>>>>>>>>>>>>>
+object.list <- list(Normal_Phase=cellchatNormal, Acute_Phase = cellchatAcute,
+                    SubAcute_Phase = cellchatSubAcute, 
+                    Chronic_Phase = cellchatChronic)
+AllPhases <- mergeCellChat(object.list, add.names = names(object.list))
+gg1 <- compareInteractions(cellchat, show.legend = F, group = c(1,2))
+gg2 <- compareInteractions(AllPhases, show.legend = F, group = c(1,2), 
+                           measure = "weight")
+gg1 + gg2
+#-----------------------------------------------------------------------------#
+#Normal_Acute
+object.list_1 <- list(Normal=cellchatNormal, Acute_Phase = cellchatAcute)
+Normal_Acute <- mergeCellChat(object.list, add.names = c("Normal Phase",
+                                                         "Acute Phase"))
+gg1 <- netVisual_heatmap(Normal_Acute, measure = "count", 
+                         title.name = "Differential number of interactions between Normal and Acute Phases")
+
+#Acute_SubAcute
+object.list_2 <- list(Acute_Phase=cellchatAcute, 
+                      Subacute_Phase = cellchatSubAcute)
+Acute_Subacute <- mergeCellChat(object.list_2, add.names = c("Acute Phase", 
+                                                             "Subacute Phase"))
+gg2 <- netVisual_heatmap(Acute_Subacute,measure = "count",  
+                         title.name = "Differential number of interactions between Acute and Subacute Phases")
+
+#SubAcute_Chronic
+object.list_3 <- list(Subacute_Phase = cellchatSubAcute, 
+                      Chronic_Phase = cellchatChronic)
+Subacute_chronic <- mergeCellChat(object.list_3, add.names = c( "Subacute Phase",
+                                                                "Chronic Phase"))
+gg3 <- netVisual_heatmap(Subacute_chronic,measure = "count",  
+                         title.name = "Differential number of interactions between Subacute and Chronic Phases")
+gg1+gg2+gg3
+#-----------------------------------------------------------------------------#
+weight.max <- getMaxWeight(object.list, attribute = c("idents","count"))
+par(mfrow = c(1,2), xpd=TRUE)
+for (i in 1:length(object.list)) {
+  netVisual_circle(object.list[[i]]@net$count, weight.scale = T, label.edge= F, edge.weight.max = weight.max[2], edge.width.max = 12, title.name = paste0("Number of interactions - ", names(object.list)[i]))
+}
+
+#------------------------------------------------------------------------------#
+num.link <- sapply(object.list, function(x) {rowSums(x@net$count) + colSums(x@net$count)-diag(x@net$count)})
+weight.MinMax <- c(min(num.link), max(num.link)) # control the dot size in the different datasets
+gg <- list()
+for (i in 1:length(object.list)) {
+  gg[[i]] <- netAnalysis_signalingRole_scatter(object.list[[i]], title = names(object.list)[i], weight.MinMax = weight.MinMax)
+}
+patchwork::wrap_plots(plots = gg)
+#------------------------------------------------------------------------------#
+#gg1 <- netAnalysis_signalingChanges_scatter(cellchat, idents.use = "Inflam. DC", signaling.exclude = "MIF")
+#gg2 <- netAnalysis_signalingChanges_scatter(cellchat, idents.use = "cDC1", signaling.exclude = c("MIF"))
+#patchwork::wrap_plots(plots = list(gg1,gg2))
+#------------------------------------------------------------------------------#
+#------------------------------------------------------------------------------#
+AllPhases <- CellChat::computeNetSimilarityPairwise(AllPhases,
+                                                    type = "functional",
+                                                    comparison = c(1,2,3,4))
+AllPhases <- CellChat::netEmbedding(AllPhases, type = "functional",
+                                    umap.method = "uwot",
+                                    comparison = c(1,2,3,4))
+AllPhases <- CellChat::netClustering(AllPhases, type = "functional",
+                                     do.parallel = FALSE,
+                                     comparison = c(1,2,3,4))
+CellChat::netVisual_embeddingPairwise(AllPhases, type = "functional", label.size = 3.5)
+netVisual_embeddingPairwiseZoomIn(AllPhases, type = "functional", nCol = 2)
+
+#------------------------------------------------------------------------------#
+AllPhases <- CellChat::computeNetSimilarityPairwise(AllPhases, 
+                                                    type = "structural"
+                                                    , comparison = c(1,2,3,4))
+AllPhases <- netEmbedding(AllPhases, type = "structural",
+                          umap.method = "uwot",
+                          comparison = c(1,2,3,4))
+AllPhases <- netClustering(AllPhases, type = "structural", 
+                           do.parallel = FALSE,
+                           comparison = c(1,2,3,4))
+netVisual_embeddingPairwise(AllPhases, type = "structural", label.size = 3.5)
+#------------------------------------------------------------------------------#
+rankSimilarity(AllPhases, type = "functional")
+gg1 <- rankNet(AllPhases, mode = "comparison", stacked = T, do.stat = TRUE, 
+               comparison = c(1,2,3, 4))
+gg2 <- rankNet(AllPhases, mode = "comparison", stacked = F, do.stat = TRUE, 
+               comparison = c(1,2,3, 4))
+gg2 + gg1
+#------------------------------------------------------------------------------#
+rankSimilarity(AllPhases, type = "functional")
+#------------------------------------------------------------------------------#
+
+#Normal_Acute
+rankSimilarity(AllPhases, type = "functional" )
+vertex.receiver = c(1,2,3,4,5,6,7,8,9,10,11,12,13) # a numeric vector. 
+netVisual_aggregate(cellchatAcute, signaling = "BAFF",  
+                    vertex.receiver = vertex.receiver, layout = "hierarchy")
+netAnalysis_signalingRole_network(cellchatNormal, signaling = "BAFF",
+                                  width = 9, height = 6, font.size = 8)
+netAnalysis_contribution(cellchatAcute, signaling = "BAFF")
+# Chord diagram
+pathways.show <- c("BAFF") 
+par(mfrow = c(1,2), xpd=TRUE)
+netVisual_aggregate(cellchatNormal, signaling = pathways.show, layout = "chord")
+
+
+#Acute_Subacute
+rankSimilarity(AllPhases, type = "functional", comparison2 = c(2,3))
+vertex.receiver = c(1,2,3,4,5,6,7,8,9,10,11,12,13) # a numeric vector. 
+netVisual_aggregate(cellchatSubAcute, signaling = "CHEMERIN",  
+                    vertex.receiver = vertex.receiver, layout = "hierarchy")
+netAnalysis_signalingRole_network(cellchatAcute, signaling = "CHEMERIN",
+                                  width = 9, height = 6, font.size = 8)
+netAnalysis_contribution(cellchatSubAcute, signaling = "CHEMERIN")
+
+
+
+
+#SubAcute_Chronic
+rankSimilarity(AllPhases, type = "functional", comparison2 = c(3,4))
+netVisual_aggregate(cellchatChronic, signaling = "CHEMERIN",  
+                    vertex.receiver = vertex.receiver, layout = "hierarchy")
+netAnalysis_signalingRole_network(cellchatChronic, signaling = "CHEMERIN",
+                                  width = 9, height = 6, font.size = 8)
+netAnalysis_contribution(cellchatChronic, signaling = "CHEMERIN")
+plotGeneExpression(AllPhases, signaling = "CHEMERIN", split.by = "datasets", colors.ggplot = T)
