@@ -1,0 +1,178 @@
+library(monocle3)
+library(SeuratWrappers)
+library(Seurat)
+library(ggplot2)
+library(tidyverse)
+list.files()
+seurat <- seurat_integrated
+macrophage <- subset(seurat, idents = c("Macro1","Macro2","Macro3","Macro4",
+                                        "Macro5","Macro6","Macro7","Macro8",
+                                        "Macro9","Macro10"))
+macrophage <- SetIdent(macrophage, value = macrophage@meta.data$cell.type)
+DefaultAssay(macrophage) <- "integrated"
+macrophage.recluster <- RunPCA(object = macrophage, verbose = FALSE)
+macrophage.recluster <- FindNeighbors(macrophage.recluster, dims = 30)
+macrophage.recluster <- RunUMAP(macrophage.recluster, dims = 1:30, n.neighbors = 50)
+DimPlot(macrophage.recluster, reduction = "umap")
+
+DefaultAssay(macrophage.recluster) = "RNA"
+DoHeatmap(macrophage.recluster, features = c("Tnf","Irf1","Ccl5","Cxcl10","Il7r","Il1b","Il10","Cd163","Mrc1","Msr1"),slot = "counts",label = FALSE)+ NoLegend()
+
+DotPlot(macrophage.recluster, features = c("Cd74", "H2-Eb1", "H2-Aa", "H2-Ab1", "Lyve1","Cbr2","C1qc", "C1qa","Cd63","Tnf","Ly6c2","Ltc4s","Treml4"))
+DotPlot(macrophage.recluster, group.by = "cell.type",features = c("Cd74", "H2-Eb1", "H2-Aa", "H2-Ab1", "Lyve1","Cbr2","C1qc", "C1qa","Cd63","Tnf","Ly6c2","Ltc4s","Treml4"))+ 
+  guides(color = guide_colorbar(ticks = F, title = NULL,
+                                direction = 'horizontal', 
+                                barwidth = unit(10, 'mm'),
+                                barheight = unit(2, 'mm')),
+         size = guide_legend(ncol = 2, title = NULL, 
+                             keywidth = unit(2, 'mm'),
+                             keyheight = unit(2, 'mm'))) +
+  theme(axis.title = element_blank(),
+        axis.text.x = element_text(size = 8,
+                                   angle = 90, 
+                                   hjust = 1, vjust = 0.5),
+        axis.text.y = element_text(size = 8, face = 'italic'),
+        legend.text = element_text(size = 8),
+        panel.grid = element_line(color = 'black', size = 0.05, 
+                                  linetype = 'dotted')) + 
+  coord_flip()
+
+
+#------------------------------------------------------------------------------#
+# monocyte 
+genes <- c("S100a4","Itgb7","Napsa","Cd300lg","Adora2b","Elane",
+           "Emb","Ly6c2","Ms4a4c","Fn1","Sell","Padi2","Klrb1f","Lilra6","Ccnb2","Galnt9",
+           "Upb1","Hpse","Lmo1","F13a1","Ctsg","Ccr2",
+           "Kcnk12","Btla","Gpr141","Prtn3","Gm15987",
+           "Ly6a2","AI839979")
+ident.scores <- genes[genes %in% rownames(macrophage.recluster)]
+write.table(t(genes),"Monocyte.genes.noquote",sep=", ",quote=FALSE,
+            row.names = F, col.names = F)
+
+macrophage.recluster <- AddModuleScore(object = macrophage.recluster, features = list(genes),
+                                       assay = 'integrated',
+                                       name = 'monocyte')
+
+f1d2 <- FeaturePlot(object = macrophage.recluster,
+                    features = 'monocyte1',
+                    reduction = "umap",
+                    min.cutoff = 'q40', max.cutoff = 'q80',
+                    pt.size = 0.01, combine =F, label  = TRUE)[[1]]+
+  theme(axis.title=element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank(),
+        axis.line = element_blank(),
+        plot.title = element_text(face = 'plain', size = 10),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank())+
+  NoLegend() +
+  labs(title = 'Monocyte signature')
+
+#0-----------------------------------------------------------------------------#
+
+# MONOCLE3 WORKFLOW ---------------------
+# monocle3 requires cell_data_set object
+# convert seurat object to cell_data_set object for monocle3
+
+
+# ...1 Convert to cell_data_set object ------------------------
+
+cds <- SeuratWrappers::as.cell_data_set(macrophage.recluster)
+cds <- estimate_size_factors(cds)
+cds <- cluster_cells(cds, reduction_method = "UMAP", resolution = .0001795 )
+a1 = plot_cells(cds, group_label_size = 3, color_cells_by = "ident")
+
+cds@rowRanges@elementMetadata@listData[["gene_short_name"]] <- rownames(macrophage.recluster[["integrated"]])
+
+plot_cells(cds, show_trajectory_graph = FALSE)
+# ...3. Learn trajectory graph ------------------------
+cds <- learn_graph(cds, use_partition = FALSE)
+plot_cells(cds, label_groups_by_cluster = TRUE, label_leaves = TRUE, label_branch_points = TRUE, graph_label_size=3)
+cds <- order_cells(cds)
+
+plot_cells(cds,
+           color_cells_by = "pseudotime",
+           graph_label_size=3, label_branch_points = FALSE, label_leaves = FALSE
+)
+
+macro_genes = c("H2-Eb1","C1qc", "Tnf","Ly6i", "Ly6c2","Ltc4s" ,"Treml4")
+
+
+
+# visualizing pseudotime in seurat
+MF_lineage_cds <- cds[rowData(cds)$gene_short_name %in% macro_genes,]
+figures = plot_genes_in_pseudotime(MF_lineage_cds,
+                         color_cells_by="ident",
+                         min_expr=0.5, cell_size = 2, panel_order = macro_genes) 
+
+
+
+
+
+###########################################################################################################  
+Neutrophils
+
+Neutrophils <- subset(seurat, idents = c("Neutro1","Neutro2" , "Neutro3" ))
+Neutrophils <- SetIdent(Neutrophils, value = Neutrophils@meta.data$cell.type)
+DefaultAssay(Neutrophils) <- "integrated"
+Neutrophils.recluster <- RunPCA(object = Neutrophils, verbose = FALSE)
+Neutrophils.recluster <- FindNeighbors(Neutrophils.recluster, dims = 30)
+Neutrophils.recluster <- RunUMAP(Neutrophils.recluster, dims = 1:30, n.neighbors = 50)
+DefaultAssay(Neutrophils.recluster) <- "RNA"
+DimPlot(Neutrophils.recluster, reduction = "UMAP")
+DotPlot(Neutrophils.recluster,features = c("Oasl2", "Il18bp",   "Prok2", "Mmp8","Rpl12","Tuba1b"))+ 
+  guides(color = guide_colorbar(ticks = F, title = NULL),
+         size = guide_legend(ncol = 2, title = NULL)) +
+  theme(axis.title = element_blank(),
+        axis.text.x = element_text(size = 8,
+                                   angle = 90,
+                                   hjust = 1, vjust = 0.5),
+        axis.text.y = element_text(size = 8, face = 'italic'),
+        legend.text = element_text(size = 8),
+        panel.grid = element_line(color = 'black', size = 0.05,
+                                  linetype = 'dotted')) +
+  coord_flip()
+
+# MONOCLE3 WORKFLOW ---------------------
+# monocle3 requires cell_data_set object
+# convert seurat object to cell_data_set object for monocle3
+
+
+# ...1 Convert to cell_data_set object ------------------------
+
+cds <- SeuratWrappers::as.cell_data_set(Neutrophils.recluster)
+cds <- estimate_size_factors(cds)
+cds <- cluster_cells(cds, reduction_method = "UMAP", resolution = .0001795 )
+plot_cells(cds, group_label_size = 3, color_cells_by = "ident")
+
+cds@rowRanges@elementMetadata@listData[["gene_short_name"]] <- rownames(Neutrophils.recluster[["integrated"]])
+
+plot_cells(cds, show_trajectory_graph = FALSE)
+# ...3. Learn trajectory graph ------------------------
+cds <- learn_graph(cds, use_partition = FALSE)
+plot_cells(cds, label_groups_by_cluster = TRUE,label_roots = TRUE ,label_leaves = TRUE, label_branch_points = TRUE, graph_label_size=3)
+cds <- order_cells(cds)
+
+plot_cells(cds,
+           color_cells_by = "pseudotime",
+           graph_label_size=3, label_branch_points = FALSE, label_leaves = FALSE
+              )
+
+saveRDS(cds, "cds.rds")
+neutro_genes = c("Oasl2", "Il18bp",   "Prok2", "Mmp8","Rpl12","Tuba1b")
+
+
+# visualizing pseudotime in seurat
+MF_lineage_cds <- cds[rowData(cds)$gene_short_name %in% neutro_genes,]
+figures = plot_genes_in_pseudotime(MF_lineage_cds,
+                         color_cells_by="ident",
+                         min_expr=0.5, cell_size = 2, panel_order = neutro_genes) 
+
+figures2 = plot_genes_in_pseudotime(MF_lineage_cds,
+                                   color_cells_by="orig.ident",
+                                   min_expr=0.5, cell_size = 2, panel_order = neutro_genes) 
+saveRDS(figures2, "fig2.rds")
+
+
+
